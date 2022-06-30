@@ -5,7 +5,10 @@ from ...modules.norm import GlobalLayerNorm
 EPS = 1e-12
 
 
-def choose_layer_norm(name, num_features, causal=False, eps=EPS, **kwargs):
+def choose_layer_norm(
+    name: str, num_features: int, causal: bool = False, eps: float = EPS, **kwargs
+):
+    r"""Choose layer normalization."""
     if name == "gLN":
         if causal:
             raise ValueError("Global Layer Normalization is NOT causal.")
