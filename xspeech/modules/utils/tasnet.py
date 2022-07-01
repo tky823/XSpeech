@@ -5,6 +5,16 @@ from ...modules.norm import GlobalLayerNorm
 EPS = 1e-12
 
 
+def choose_nonlinear(name: str, **kwargs):
+    r"""Choose nonlinear function."""
+    if name == "prelu":
+        module = nn.PReLU()
+    else:
+        raise ValueError("Not support {}.".format(name))
+
+    return module
+
+
 def choose_layer_norm(
     name: str, num_features: int, causal: bool = False, eps: float = EPS, **kwargs
 ):

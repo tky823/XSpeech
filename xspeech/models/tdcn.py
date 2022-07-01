@@ -5,7 +5,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from .film import FiLM1d
-from ..modules.utils.tasnet import choose_layer_norm
+from ..modules.utils.tasnet import choose_nonlinear, choose_layer_norm
 
 EPS = 1e-12
 
@@ -37,11 +37,7 @@ class ResidualBlock1d(nn.Module):
         )
 
         if nonlinear is not None:
-            if nonlinear == "prelu":
-                self.nonlinear1d = nn.PReLU()
-            else:
-                raise ValueError("Not support {}".format(nonlinear))
-
+            self.nonlinear1d = choose_nonlinear(nonlinear)
             self.nonlinear = True
         else:
             self.nonlinear = False
@@ -139,11 +135,7 @@ class ConditionedResidualBlock1d(nn.Module):
         )
 
         if nonlinear is not None:
-            if nonlinear == "prelu":
-                self.nonlinear1d = nn.PReLU()
-            else:
-                raise ValueError("Not support {}".format(nonlinear))
-
+            self.nonlinear1d = choose_nonlinear(nonlinear)
             self.nonlinear = True
         else:
             self.nonlinear = False
@@ -253,11 +245,7 @@ class DepthwiseSeparableConv1d(nn.Module):
         )
 
         if nonlinear is not None:
-            if nonlinear == "prelu":
-                self.nonlinear1d = nn.PReLU()
-            else:
-                raise ValueError("Not support {}".format(nonlinear))
-
+            self.nonlinear1d = choose_nonlinear(nonlinear)
             self.nonlinear = True
         else:
             self.nonlinear = False
@@ -345,11 +333,7 @@ class ConditionedDepthwiseSeparableConv1d(nn.Module):
         self.conditioning = FiLM1d()
 
         if nonlinear is not None:
-            if nonlinear == "prelu":
-                self.nonlinear1d = nn.PReLU()
-            else:
-                raise ValueError("Not support {}".format(nonlinear))
-
+            self.nonlinear1d = choose_nonlinear(nonlinear)
             self.nonlinear = True
         else:
             self.nonlinear = False
