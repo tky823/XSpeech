@@ -10,6 +10,82 @@ from ..modules.utils.tasnet import choose_nonlinear, choose_layer_norm
 EPS = 1e-12
 
 
+class TimeDilatedConvBlock1d(nn.Module):
+    def __init__(
+        self,
+        num_features,
+        hidden_channels=256,
+        skip_channels=256,
+        kernel_size=3,
+        num_layers=10,
+        dilated=True,
+        causal=True,
+        nonlinear=None,
+        norm=True,
+        dual_head=True,
+        eps=EPS,
+    ):
+        super().__init__()
+
+        self.num_layers = num_layers
+
+        net = []
+
+        for idx in range(num_layers):
+            if dilated:
+                dilation = 2**idx
+                stride = 1
+            else:
+                dilation = 1
+                stride = 2
+            if not dual_head and idx == num_layers - 1:
+                net.append(
+                    ResidualBlock1d(
+                        num_features,
+                        hidden_channels=hidden_channels,
+                        skip_channels=skip_channels,
+                        kernel_size=kernel_size,
+                        stride=stride,
+                        dilation=dilation,
+                        causal=causal,
+                        nonlinear=nonlinear,
+                        norm=norm,
+                        dual_head=False,
+                        eps=eps,
+                    )
+                )
+            else:
+                net.append(
+                    ResidualBlock1d(
+                        num_features,
+                        hidden_channels=hidden_channels,
+                        skip_channels=skip_channels,
+                        kernel_size=kernel_size,
+                        stride=stride,
+                        dilation=dilation,
+                        causal=causal,
+                        nonlinear=nonlinear,
+                        norm=norm,
+                        dual_head=True,
+                        eps=eps,
+                    )
+                )
+
+        self.net = nn.Sequential(*net)
+
+    def forward(self, input):
+        num_layers = self.num_layers
+
+        x = input
+        skip_connection = 0
+
+        for idx in range(num_layers):
+            x, skip = self.net[idx](x)
+            skip_connection = skip_connection + skip
+
+        return x, skip_connection
+
+
 class ResidualBlock1d(nn.Module):
     def __init__(
         self,
