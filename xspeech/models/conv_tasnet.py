@@ -2,11 +2,229 @@ from typing import Optional, List, Union
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
+from .utils.filterbank import choose_filterbank
 from ..modules.utils.tasnet import choose_nonlinear, choose_layer_norm
 from .tdcn import TimeDilatedConvNet, ConditionedTimeDilatedConvNet
 
 EPS = 1e-12
+
+
+class ConvTasNet(nn.Module):
+    r"""Conv-TasNet."""
+
+    def __init__(
+        self,
+        n_basis: int,
+        kernel_size: int,
+        stride: Optional[int] = None,
+        enc_basis: str = "trainable",
+        dec_basis: str = "trainable",
+        sep_hidden_channels: int = 256,
+        sep_bottleneck_channels: int = 128,
+        sep_skip_channels: int = 128,
+        sep_kernel_size: int = 3,
+        sep_num_blocks: int = 3,
+        sep_num_layers: int = 8,
+        dilated: bool = True,
+        sep_nonlinear: str = "prelu",
+        sep_norm: Union[str, bool] = True,
+        mask_nonlinear: str = "sigmoid",
+        causal: bool = True,
+        n_sources: int = 2,
+        eps: float = EPS,
+        **kwargs
+    ):
+        super().__init__()
+
+        if stride is None:
+            stride = kernel_size // 2
+
+        assert kernel_size % stride == 0, "kernel_size is expected divisible by stride"
+
+        # Encoder-decoder
+        self.in_channels = kwargs.get("in_channels", 1)
+        self.n_basis = n_basis
+        self.kernel_size, self.stride = kernel_size, stride
+        self.enc_basis, self.dec_basis = enc_basis, dec_basis
+
+        if enc_basis == "trainable":
+            self.enc_nonlinear = kwargs["enc_nonlinear"]
+        else:
+            self.enc_nonlinear = None
+
+        assert (
+            enc_basis == "trainable"
+        ), "enc_basis should be 'trainable', but given {}.".format(enc_basis)
+
+        # Separator configuration
+        self.sep_hidden_channels = sep_hidden_channels
+        self.sep_bottleneck_channels = sep_bottleneck_channels
+        self.sep_skip_channels = sep_skip_channels
+        self.sep_kernel_size = sep_kernel_size
+        self.sep_num_blocks = sep_num_blocks
+        self.sep_num_layers = sep_num_layers
+
+        self.dilated = dilated
+        self.causal = causal
+        self.sep_nonlinear = sep_nonlinear
+        self.sep_norm = sep_norm
+        self.mask_nonlinear = mask_nonlinear
+
+        self.n_sources = n_sources
+        self.eps = eps
+
+        # Network configuration
+        encoder, decoder = choose_filterbank(
+            n_basis,
+            kernel_size=kernel_size,
+            stride=stride,
+            enc_basis=enc_basis,
+            dec_basis=dec_basis,
+            **kwargs
+        )
+
+        self.encoder = encoder
+        self.separator = Separator(
+            n_basis,
+            bottleneck_channels=sep_bottleneck_channels,
+            hidden_channels=sep_hidden_channels,
+            skip_channels=sep_skip_channels,
+            kernel_size=sep_kernel_size,
+            num_blocks=sep_num_blocks,
+            num_layers=sep_num_layers,
+            dilated=dilated,
+            causal=causal,
+            nonlinear=sep_nonlinear,
+            norm=sep_norm,
+            mask_nonlinear=mask_nonlinear,
+            n_sources=n_sources,
+            eps=eps,
+        )
+        self.decoder = decoder
+
+    def forward(self, input: torch.Tensor):
+        r"""
+        Args:
+            input (torch.Tensor):
+                Input tensor with shape of (batch_size, in_channels, num_samples).
+
+        Returns:
+            torch.Tensor:
+                Output tensor with shape of (batch_size, n_sources, num_samples)
+                or (batch_size, n_sources, in_channels, num_samples).
+        """
+        output, _ = self.extract_latent(input)
+
+        return output
+
+    def extract_latent(self, input: torch.Tensor):
+        r"""
+        Args:
+            input (torch.Tensor):
+                Input tensor with shape of (batch_size, in_channels, num_samples).
+
+        Returns:
+            torch.Tensor:
+                Output tensor with shape of (batch_size, n_sources, num_samples)
+                or (batch_size, n_sources, in_channels, num_samples).
+            torch.Tensor:
+                Latent tensor with shape of (batch_size, n_sources, n_basis, T),
+                where T = (num_samples - kernel_size) // stride + 1.
+        """
+        n_sources = self.n_sources
+        n_basis = self.n_basis
+        kernel_size, stride = self.kernel_size, self.stride
+
+        n_dims = input.dim()
+
+        if n_dims == 3:
+            batch_size, in_channels, num_samples = input.size()
+            assert (
+                in_channels == 1
+            ), "input.size() is expected (?, 1, ?), but given {}.".format(input.size())
+        elif n_dims == 4:
+            batch_size, in_channels, n_mics, num_samples = input.size()
+
+            assert (
+                in_channels == 1
+            ), "input.size() is expected (?, 1, ?, ?), but given {}.".format(
+                input.size()
+            )
+
+            input = input.view(batch_size, n_mics, num_samples)
+        else:
+            raise ValueError("Not support {} dimension input.".format(n_dims))
+
+        padding = (stride - (num_samples - kernel_size) % stride) % stride
+        padding_left = padding // 2
+        padding_right = padding - padding_left
+
+        input = F.pad(input, (padding_left, padding_right))
+        w = self.encoder(input)
+        mask = self.separator(w)
+        w = w.unsqueeze(dim=1)
+        w_hat = w * mask
+
+        latent = w_hat
+        w_hat = w_hat.view(batch_size * n_sources, n_basis, -1)
+        x_hat = self.decoder(w_hat)
+
+        if n_dims == 3:
+            x_hat = x_hat.view(batch_size, n_sources, -1)
+        else:  # n_dims == 4
+            x_hat = x_hat.view(batch_size, n_sources, n_mics, -1)
+
+        output = F.pad(x_hat, (-padding_left, -padding_right))
+
+        return output, latent
+
+    def get_config(self):
+        r"""Get dictionary of config.
+
+        Returns:
+            dict: Config of model.
+        """
+        config = {
+            "in_channels": self.in_channels,
+            "n_basis": self.n_basis,
+            "kernel_size": self.kernel_size,
+            "stride": self.stride,
+            "enc_basis": self.enc_basis,
+            "dec_basis": self.dec_basis,
+            "enc_nonlinear": self.enc_nonlinear,
+            "sep_hidden_channels": self.sep_hidden_channels,
+            "sep_bottleneck_channels": self.sep_bottleneck_channels,
+            "sep_skip_channels": self.sep_skip_channels,
+            "sep_kernel_size": self.sep_kernel_size,
+            "sep_num_blocks": self.sep_num_blocks,
+            "sep_num_layers": self.sep_num_layers,
+            "dilated": self.dilated,
+            "causal": self.causal,
+            "sep_nonlinear": self.sep_nonlinear,
+            "sep_norm": self.sep_norm,
+            "mask_nonlinear": self.mask_nonlinear,
+            "n_sources": self.n_sources,
+            "eps": self.eps,
+        }
+
+        return config
+
+    @property
+    def num_parameters(self):
+        r"""Compute number of trainable parameters.
+
+        Returns:
+            int: Number of parameters.
+        """
+        _num_parameters = 0
+
+        for p in self.parameters():
+            if p.requires_grad:
+                _num_parameters += p.numel()
+
+        return _num_parameters
 
 
 class Separator(nn.Module):
