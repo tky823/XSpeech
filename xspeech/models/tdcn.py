@@ -115,7 +115,7 @@ class ConditionedTimeDilatedConvNet(nn.Module):
         for idx in range(num_blocks):
             if idx == num_blocks - 1:
                 net.append(
-                    TimeDilatedConvBlock1d(
+                    ConditionedTimeDilatedConvBlock1d(
                         num_features,
                         hidden_channels=hidden_channels,
                         skip_channels=skip_channels,
@@ -131,7 +131,7 @@ class ConditionedTimeDilatedConvNet(nn.Module):
                 )
             else:
                 net.append(
-                    TimeDilatedConvBlock1d(
+                    ConditionedTimeDilatedConvBlock1d(
                         num_features,
                         hidden_channels=hidden_channels,
                         skip_channels=skip_channels,
