@@ -75,6 +75,18 @@ class TimeDilatedConvBlock1d(nn.Module):
         self.net = nn.Sequential(*net)
 
     def forward(self, input: torch.Tensor):
+        r"""
+        Args:
+            input (torch.Tensor):
+                Input tensor with shape of (batch_size, num_features, num_samples).
+
+        Returns:
+            torch.Tensor:
+                Output tensor with shape of (batch_size, num_features, num_samples).
+            torch.Tensor:
+                Output tensor for skip connection.
+                The shape is (batch_size, skip_channels, num_samples).
+        """
         num_layers = self.num_layers
 
         x = input
@@ -157,6 +169,22 @@ class ConditionedTimeDilatedConvBlock1d(nn.Module):
         scale: Optional[List[torch.Tensor]] = None,
         bias: Optional[List[torch.Tensor]] = None,
     ):
+        r"""
+        Args:
+            input (torch.Tensor):
+                Input tensor with shape of (batch_size, num_features, num_samples).
+            scale (list(torch.Tensor), optional):
+                List of input tensor with shape of (batch_size, hidden_channels).
+            bias (list(torch.Tensor), optional):
+                List of input tensor with shape of (batch_size, hidden_channels).
+
+        Returns:
+            torch.Tensor:
+                Output tensor with shape of (batch_size, num_features, num_samples).
+            torch.Tensor:
+                Output tensor for skip connection.
+                The shape is (batch_size, skip_channels, num_samples).
+        """
         num_layers = self.num_layers
 
         x = input
