@@ -277,7 +277,7 @@ class DepthwiseSeparableConv1d(nn.Module):
             in_channels, skip_channels, kernel_size=1, stride=1
         )
 
-    def forward(self, input: torch.Tensor) -> torch.Tensor:
+    def forward(self, input: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         r"""
         Args:
             input (torch.Tensor):
@@ -371,7 +371,7 @@ class ConditionedDepthwiseSeparableConv1d(nn.Module):
 
     def forward(
         self, input: torch.Tensor, scale: torch.Tensor, bias: torch.Tensor
-    ) -> torch.Tensor:
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         r"""
         Args:
             input (torch.Tensor):
