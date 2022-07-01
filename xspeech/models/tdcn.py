@@ -43,7 +43,13 @@ class ResidualBlock1d(nn.Module):
             self.nonlinear = False
 
         if norm:
-            norm_name = "cLN" if causal else "gLN"
+            if type(norm) is str:
+                norm_name = norm
+            elif type(norm) is bool:
+                norm_name = "cLN" if causal else "gLN"
+            else:
+                raise ValueError("Not support {}.".format(norm))
+
             self.norm1d = choose_layer_norm(
                 norm_name, hidden_channels, causal=causal, eps=eps
             )
@@ -141,7 +147,13 @@ class ConditionedResidualBlock1d(nn.Module):
             self.nonlinear = False
 
         if norm:
-            norm_name = "cLN" if causal else "gLN"
+            if type(norm) is str:
+                norm_name = norm
+            elif type(norm) is bool:
+                norm_name = "cLN" if causal else "gLN"
+            else:
+                raise ValueError("Not support {}.".format(norm))
+
             self.norm1d = choose_layer_norm(
                 norm_name, hidden_channels, causal=causal, eps=eps
             )
@@ -251,7 +263,13 @@ class DepthwiseSeparableConv1d(nn.Module):
             self.nonlinear = False
 
         if norm:
-            norm_name = "cLN" if causal else "gLN"
+            if type(norm) is str:
+                norm_name = norm
+            elif type(norm) is bool:
+                norm_name = "cLN" if causal else "gLN"
+            else:
+                raise ValueError("Not support {}.".format(norm))
+
             self.norm1d = choose_layer_norm(
                 norm_name, in_channels, causal=causal, eps=eps
             )
@@ -339,7 +357,13 @@ class ConditionedDepthwiseSeparableConv1d(nn.Module):
             self.nonlinear = False
 
         if norm:
-            norm_name = "cLN" if causal else "gLN"
+            if type(norm) is str:
+                norm_name = norm
+            elif type(norm) is bool:
+                norm_name = "cLN" if causal else "gLN"
+            else:
+                raise ValueError("Not support {}.".format(norm))
+
             self.norm1d = choose_layer_norm(
                 norm_name, in_channels, causal=causal, eps=eps
             )
