@@ -1,3 +1,6 @@
+from typing import Optional
+
+import torch
 import torch.nn as nn
 
 
@@ -7,14 +10,19 @@ class FiLM(nn.Module):
     def __init__(self) -> None:
         super().__init__()
 
-    def forward(self, input, scale, bias):
+    def forward(
+        self,
+        input: torch.Tensor,
+        scale: Optional[torch.Tensor] = None,
+        bias: Optional[torch.Tensor] = None,
+    ) -> torch.Tensor:
         r"""
         Args:
             input (torch.Tensor):
                 Input tensor with shape of (batch_size, num_features, *).
-            scale (torch.Tensor):
+            scale (torch.Tensor, optional):
                 Conditioning tensor with shape of (batch_size, num_features).
-            bias (torch.Tensor):
+            bias (torch.Tensor, optional):
                 Conditioning tensor with shape of (batch_size, num_features).
 
         Returns:
@@ -37,14 +45,19 @@ class FiLM1d(FiLM):
     def __init__(self) -> None:
         super().__init__()
 
-    def forward(self, input, scale, bias):
+    def forward(
+        self,
+        input: torch.Tensor,
+        scale: Optional[torch.Tensor] = None,
+        bias: Optional[torch.Tensor] = None,
+    ) -> torch.Tensor:
         r"""
         Args:
             input (torch.Tensor):
                 Input tensor with shape of (batch_size, num_features, num_samples).
-            scale (torch.Tensor):
+            scale (torch.Tensor, optional):
                 Conditioning tensor with shape of (batch_size, num_features).
-            bias (torch.Tensor):
+            bias (torch.Tensor, optional):
                 Conditioning tensor with shape of (batch_size, num_features).
 
         Returns:
