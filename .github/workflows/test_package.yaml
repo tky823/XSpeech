@@ -28,7 +28,7 @@ jobs:
           pip install -e .[dev,tests]
       - name: Pytest
         run: |
-          pytest tests --cov=./xspeech --cov-report=xml
+          pytest --cov=./xspeech --cov-report=xml
       - name: Upload coverage to codecov
         uses: codecov/codecov-action@v2
         with:
