@@ -1,4 +1,4 @@
-from typing import Optional, Tuple
+from typing import Optional, Tuple, List, Union
 
 import torch
 import torch.nn as nn
@@ -13,17 +13,17 @@ EPS = 1e-12
 class TimeDilatedConvBlock1d(nn.Module):
     def __init__(
         self,
-        num_features,
-        hidden_channels=256,
-        skip_channels=256,
-        kernel_size=3,
-        num_layers=10,
-        dilated=True,
-        causal=True,
-        nonlinear=None,
-        norm=True,
-        dual_head=True,
-        eps=EPS,
+        num_features: int,
+        hidden_channels: int = 256,
+        skip_channels: int = 256,
+        kernel_size: int = 3,
+        num_layers: int = 10,
+        dilated: bool = True,
+        causal: bool = True,
+        nonlinear: Optional[str] = None,
+        norm: Union[bool, str] = True,
+        dual_head: bool = True,
+        eps: float = EPS,
     ):
         super().__init__()
 
@@ -38,6 +38,7 @@ class TimeDilatedConvBlock1d(nn.Module):
             else:
                 dilation = 1
                 stride = 2
+
             if not dual_head and idx == num_layers - 1:
                 net.append(
                     ResidualBlock1d(
@@ -73,7 +74,7 @@ class TimeDilatedConvBlock1d(nn.Module):
 
         self.net = nn.Sequential(*net)
 
-    def forward(self, input):
+    def forward(self, input: torch.Tensor):
         num_layers = self.num_layers
 
         x = input
@@ -81,6 +82,98 @@ class TimeDilatedConvBlock1d(nn.Module):
 
         for idx in range(num_layers):
             x, skip = self.net[idx](x)
+            skip_connection = skip_connection + skip
+
+        return x, skip_connection
+
+
+class ConditionedTimeDilatedConvBlock1d(nn.Module):
+    def __init__(
+        self,
+        num_features: int,
+        hidden_channels: int = 256,
+        skip_channels: int = 256,
+        kernel_size: int = 3,
+        num_layers: int = 10,
+        dilated: bool = True,
+        causal: bool = True,
+        nonlinear: Optional[str] = None,
+        norm: Union[bool, str] = True,
+        dual_head: bool = True,
+        eps: float = EPS,
+    ):
+        super().__init__()
+
+        self.num_layers = num_layers
+
+        net = []
+
+        for idx in range(num_layers):
+            if dilated:
+                dilation = 2**idx
+                stride = 1
+            else:
+                dilation = 1
+                stride = 2
+
+            if not dual_head and idx == num_layers - 1:
+                net.append(
+                    ConditionedResidualBlock1d(
+                        num_features,
+                        hidden_channels=hidden_channels,
+                        skip_channels=skip_channels,
+                        kernel_size=kernel_size,
+                        stride=stride,
+                        dilation=dilation,
+                        causal=causal,
+                        nonlinear=nonlinear,
+                        norm=norm,
+                        dual_head=False,
+                        eps=eps,
+                    )
+                )
+            else:
+                net.append(
+                    ConditionedResidualBlock1d(
+                        num_features,
+                        hidden_channels=hidden_channels,
+                        skip_channels=skip_channels,
+                        kernel_size=kernel_size,
+                        stride=stride,
+                        dilation=dilation,
+                        causal=causal,
+                        nonlinear=nonlinear,
+                        norm=norm,
+                        dual_head=True,
+                        eps=eps,
+                    )
+                )
+
+        self.net = nn.Sequential(*net)
+
+    def forward(
+        self,
+        input: torch.Tensor,
+        scale: Optional[List[torch.Tensor]] = None,
+        bias: Optional[List[torch.Tensor]] = None,
+    ):
+        num_layers = self.num_layers
+
+        x = input
+        skip_connection = 0
+
+        for idx in range(num_layers):
+            if scale is None:
+                _scale = None
+            else:
+                _scale = scale[idx]
+
+            if bias is None:
+                _bias = None
+            else:
+                _bias = bias[idx]
+
+            x, skip = self.net[idx](x, scale=_scale, bias=_bias)
             skip_connection = skip_connection + skip
 
         return x, skip_connection
