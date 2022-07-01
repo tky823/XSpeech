@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Tuple
 
 import torch
 import torch.nn as nn
@@ -66,7 +66,19 @@ class ResidualBlock1d(nn.Module):
             eps=eps,
         )
 
-    def forward(self, input: torch.Tensor) -> torch.Tensor:
+    def forward(self, input: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        r"""
+        Args:
+            input (torch.Tensor):
+                Input tensor with shape of (batch_size, num_features, num_samples).
+
+        Returns:
+            torch.Tensor:
+                Output tensor with shape of (batch_size, num_features, num_samples).
+            torch.Tensor:
+                Output tensor for skip connection.
+                The shape is (batch_size, skip_channels, num_samples).
+        """
         kernel_size, stride, dilation = self.kernel_size, self.stride, self.dilation
         nonlinear, norm = self.nonlinear, self.norm
         causal = self.causal
@@ -158,7 +170,23 @@ class ConditionedResidualBlock1d(nn.Module):
 
     def forward(
         self, input: torch.Tensor, scale: torch.Tensor = None, bias: torch.Tensor = None
-    ) -> torch.Tensor:
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        r"""
+        Args:
+            input (torch.Tensor):
+                Input tensor with shape of (batch_size, num_features, num_samples).
+            scale (torch.Tensor):
+                Input tensor with shape of (batch_size, num_features).
+            bias (torch.Tensor):
+                Input tensor with shape of (batch_size, num_features).
+
+        Returns:
+            torch.Tensor:
+                Output tensor with shape of (batch_size, num_features, num_samples).
+            torch.Tensor:
+                Output tensor for skip connection.
+                The shape is (batch_size, skip_channels, num_samples).
+        """
         kernel_size, stride, dilation = self.kernel_size, self.stride, self.dilation
         nonlinear, norm = self.nonlinear, self.norm
         causal = self.causal
