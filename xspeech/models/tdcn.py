@@ -10,6 +10,87 @@ from ..modules.utils.tasnet import choose_nonlinear, choose_layer_norm
 EPS = 1e-12
 
 
+class TimeDilatedConvNet(nn.Module):
+    def __init__(
+        self,
+        num_features: int,
+        hidden_channels: int = 256,
+        skip_channels: int = 256,
+        kernel_size: int = 3,
+        num_blocks: int = 3,
+        num_layers: int = 10,
+        dilated: bool = True,
+        causal: bool = True,
+        nonlinear: Optional[str] = None,
+        norm: Union[str, bool] = True,
+        eps: float = EPS,
+    ):
+        super().__init__()
+
+        self.num_blocks = num_blocks
+
+        net = []
+
+        for idx in range(num_blocks):
+            if idx == num_blocks - 1:
+                net.append(
+                    TimeDilatedConvBlock1d(
+                        num_features,
+                        hidden_channels=hidden_channels,
+                        skip_channels=skip_channels,
+                        kernel_size=kernel_size,
+                        num_layers=num_layers,
+                        dilated=dilated,
+                        causal=causal,
+                        nonlinear=nonlinear,
+                        norm=norm,
+                        dual_head=False,
+                        eps=eps,
+                    )
+                )
+            else:
+                net.append(
+                    TimeDilatedConvBlock1d(
+                        num_features,
+                        hidden_channels=hidden_channels,
+                        skip_channels=skip_channels,
+                        kernel_size=kernel_size,
+                        num_layers=num_layers,
+                        dilated=dilated,
+                        causal=causal,
+                        nonlinear=nonlinear,
+                        norm=norm,
+                        dual_head=True,
+                        eps=eps,
+                    )
+                )
+
+        self.net = nn.Sequential(*net)
+
+    def forward(self, input: torch.Tensor) -> torch.Tensor:
+        r"""
+        Args:
+            input (torch.Tensor):
+                Input tensor with shape of (batch_size, num_features, num_samples).
+
+        Returns:
+            torch.Tensor:
+                Output tensor with shape of (batch_size, skip_channels, num_samples).
+        """
+        num_blocks = self.num_blocks
+
+        x = input
+        skip_connection = 0
+
+        for idx in range(num_blocks):
+            x, skip = self.net[idx](x)
+            skip_connection = skip_connection + skip
+
+        output = skip_connection
+
+        return output
+
+
 class TimeDilatedConvBlock1d(nn.Module):
     def __init__(
         self,
