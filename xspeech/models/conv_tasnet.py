@@ -65,10 +65,12 @@ class Separator(nn.Module):
         self.mask_nonlinear = choose_nonlinear(mask_nonlinear, **kwargs)
 
     def forward(self, input: torch.Tensor):
-        """
+        r"""Estimate masks for each source.
+
         Args:
             input (torch.Tensor):
                 Input tensor with shape of (batch_size, num_features, n_samples).
+
         Returns:
             torch.Tensor:
                 Output tensor with shape of (batch_size, n_sources, n_basis, n_samples).
