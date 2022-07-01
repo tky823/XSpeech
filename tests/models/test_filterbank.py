@@ -3,6 +3,7 @@ from typing import Optional
 import pytest
 import torch
 
+from xspeech.utils import set_seed
 from xspeech.models.filterbank import Encoder, Decoder
 
 parameters_encoder = [
@@ -29,6 +30,8 @@ def test_encoder(
     nonlinear: Optional[str],
     num_samples: int,
 ):
+    set_seed()
+
     model = Encoder(
         in_channels,
         n_basis=n_basis,
@@ -57,6 +60,8 @@ def test_decoder(
     stride: int,
     num_samples: int,
 ):
+    set_seed()
+
     model = Decoder(
         n_basis,
         out_channels=out_channels,

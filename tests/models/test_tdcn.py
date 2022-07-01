@@ -2,6 +2,7 @@ import pytest
 import torch
 import torch.nn.functional as F
 
+from xspeech.utils import set_seed
 from xspeech.models.tdcn import (
     TimeDilatedConvNet,
     ConditionedTimeDilatedConvNet,
@@ -46,6 +47,8 @@ def test_time_dilated_conv_net(
     num_layers: int,
     num_samples: int,
 ):
+    set_seed()
+
     model = TimeDilatedConvNet(
         num_features,
         hidden_channels=hidden_channels,
@@ -81,6 +84,8 @@ def test_conditioned_time_dilated_conv_net(
     num_layers: int,
     num_samples: int,
 ):
+    set_seed()
+
     model = ConditionedTimeDilatedConvNet(
         num_features,
         hidden_channels=hidden_channels,
@@ -126,6 +131,8 @@ def test_time_dilated_conv_block1d(
     num_layers: int,
     num_samples: int,
 ):
+    set_seed()
+
     model = TimeDilatedConvBlock1d(
         num_features,
         hidden_channels=hidden_channels,
@@ -161,6 +168,8 @@ def test_conditioned_time_dilated_conv_block1d(
     num_layers: int,
     num_samples: int,
 ):
+    set_seed()
+
     model = ConditionedTimeDilatedConvBlock1d(
         num_features,
         hidden_channels=hidden_channels,
@@ -202,6 +211,8 @@ def test_residual_block1d(
     dilation: int,
     num_samples: int,
 ):
+    set_seed()
+
     model = ResidualBlock1d(
         in_channels,
         hidden_channels=hidden_channels,
@@ -238,6 +249,8 @@ def test_conditioned_residual_block(
     dilation: int,
     num_samples: int,
 ):
+    set_seed()
+
     model = ConditionedResidualBlock1d(
         in_channels,
         hidden_channels=hidden_channels,
@@ -276,6 +289,8 @@ def test_depthwise_separable_conv1d(
     dilation: int,
     num_samples: int,
 ):
+    set_seed()
+
     conv1d = DepthwiseSeparableConv1d(
         in_channels,
         out_channels=out_channels,
@@ -317,6 +332,8 @@ def test_conditioned_depthwise_separable_conv1d(
     dilation: int,
     num_samples: int,
 ):
+    set_seed()
+
     conv1d = ConditionedDepthwiseSeparableConv1d(
         in_channels,
         out_channels=out_channels,

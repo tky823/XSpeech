@@ -2,6 +2,7 @@ from typing import Optional
 import pytest
 import torch
 
+from xspeech.utils import set_seed
 from xspeech.models.conv_tasnet import ConvTasNet, Separator, ConditionedExtractor
 
 parameters_conv_tasnet = [
@@ -41,6 +42,8 @@ def test_conv_tasnet(
     n_sources: int,
     num_samples: int,
 ):
+    set_seed()
+
     model = ConvTasNet(
         n_basis,
         kernel_size=kernel_size,
@@ -85,6 +88,8 @@ def test_separator(
     n_sources: int,
     num_samples: int,
 ):
+    set_seed()
+
     model = Separator(
         num_features,
         bottleneck_channels=bottleneck_channels,
@@ -124,6 +129,8 @@ def test_conditioned_extractor(
     num_layers: int,
     num_samples: int,
 ):
+    set_seed()
+
     model = ConditionedExtractor(
         num_features,
         bottleneck_channels=bottleneck_channels,
