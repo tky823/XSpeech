@@ -4,6 +4,7 @@ import torch.nn.functional as F
 
 from xspeech.models.tdcn import (
     TimeDilatedConvBlock1d,
+    ConditionedTimeDilatedConvBlock1d,
     ResidualBlock1d,
     ConditionedResidualBlock1d,
     DepthwiseSeparableConv1d,
@@ -54,6 +55,46 @@ def test_time_dilated_conv_block1d(
 
     with torch.no_grad():
         output, skip = model(input)
+
+    assert output.size() == (batch_size, num_features, num_samples)
+    assert skip.size() == (batch_size, skip_channels, num_samples)
+
+
+@pytest.mark.parametrize(
+    "batch_size, num_features, hidden_channels, skip_channels, \
+        kernel_size, num_layers, num_samples",
+    parameters_time_dilated_conv_block1d,
+)
+def test_conditioned_time_dilated_conv_block1d(
+    batch_size: int,
+    num_features: int,
+    hidden_channels: int,
+    skip_channels: int,
+    kernel_size: int,
+    num_layers: int,
+    num_samples: int,
+):
+    model = ConditionedTimeDilatedConvBlock1d(
+        num_features,
+        hidden_channels=hidden_channels,
+        skip_channels=skip_channels,
+        kernel_size=kernel_size,
+        num_layers=num_layers,
+        dilated=True,
+        causal=False,
+        norm=True,
+        dual_head=True,
+    )
+
+    input = torch.randn(batch_size, num_features, num_samples)
+    scale, bias = [], []
+
+    for _ in range(num_layers):
+        scale.append(torch.randn(batch_size, hidden_channels))
+        bias.append(torch.randn(batch_size, hidden_channels))
+
+    with torch.no_grad():
+        output, skip = model(input, scale=scale, bias=bias)
 
     assert output.size() == (batch_size, num_features, num_samples)
     assert skip.size() == (batch_size, skip_channels, num_samples)
