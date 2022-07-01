@@ -9,6 +9,10 @@ def choose_nonlinear(name: str, **kwargs):
     r"""Choose nonlinear function."""
     if name == "prelu":
         module = nn.PReLU()
+    elif name == "sigmoid":
+        module = nn.Sigmoid()
+    elif name == "softmax":
+        module = nn.Softmax(**kwargs)
     else:
         raise ValueError("Not support {}.".format(name))
 
