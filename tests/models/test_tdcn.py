@@ -3,6 +3,7 @@ import torch
 import torch.nn.functional as F
 
 from xspeech.models.tdcn import (
+    TimeDilatedConvNet,
     TimeDilatedConvBlock1d,
     ConditionedTimeDilatedConvBlock1d,
     ResidualBlock1d,
@@ -11,6 +12,10 @@ from xspeech.models.tdcn import (
     ConditionedDepthwiseSeparableConv1d,
 )
 
+parameters_time_dilated_conv_net = [
+    (4, 3, 5, 16, 3, 2, 5, 10),
+    (2, 3, 6, 4, 3, 3, 1, 16),
+]
 parameters_time_dilated_conv_block1d = [
     (4, 3, 5, 16, 3, 5, 10),
     (2, 3, 6, 4, 3, 1, 16),
@@ -23,6 +28,41 @@ parameters_depthwise_separable_conv1d = [
     (4, 3, 16, 12, 3, 1, 1, 10),
     (2, 3, 4, 5, 3, 1, 2, 16),
 ]
+
+
+@pytest.mark.parametrize(
+    "batch_size, num_features, hidden_channels, skip_channels, \
+        kernel_size, num_blocks, num_layers, num_samples",
+    parameters_time_dilated_conv_net,
+)
+def test_time_dilated_conv_net(
+    batch_size: int,
+    num_features: int,
+    hidden_channels: int,
+    skip_channels: int,
+    kernel_size: int,
+    num_blocks: int,
+    num_layers: int,
+    num_samples: int,
+):
+    model = TimeDilatedConvNet(
+        num_features,
+        hidden_channels=hidden_channels,
+        skip_channels=skip_channels,
+        kernel_size=kernel_size,
+        num_blocks=num_blocks,
+        num_layers=num_layers,
+        dilated=True,
+        causal=False,
+        norm=True,
+    )
+
+    input = torch.randn(batch_size, num_features, num_samples)
+
+    with torch.no_grad():
+        output = model(input)
+
+    assert output.size() == (batch_size, skip_channels, num_samples)
 
 
 @pytest.mark.parametrize(
