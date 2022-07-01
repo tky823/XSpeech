@@ -33,8 +33,15 @@ class FiLM(nn.Module):
         expand_dims = (1,) * (n_dims - 2)
         dims = scale.size() + expand_dims
 
-        gamma = scale.view(*dims)
-        beta = bias.view(*dims)
+        if scale is None:
+            gamma = 1
+        else:
+            gamma = scale.view(*dims)
+
+        if bias is None:
+            beta = 0
+        else:
+            beta = bias.view(*dims)
 
         return gamma * input + beta
 
@@ -66,7 +73,14 @@ class FiLM1d(FiLM):
         """
         dims = scale.size() + (1,)
 
-        gamma = scale.view(*dims)
-        beta = bias.view(*dims)
+        if scale is None:
+            gamma = 1
+        else:
+            gamma = scale.view(*dims)
+
+        if bias is None:
+            beta = 0
+        else:
+            beta = bias.view(*dims)
 
         return gamma * input + beta
