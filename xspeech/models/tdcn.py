@@ -173,15 +173,18 @@ class ConditionedResidualBlock1d(nn.Module):
         )
 
     def forward(
-        self, input: torch.Tensor, scale: torch.Tensor = None, bias: torch.Tensor = None
+        self,
+        input: torch.Tensor,
+        scale: Optional[torch.Tensor] = None,
+        bias: Optional[torch.Tensor] = None,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         r"""
         Args:
             input (torch.Tensor):
                 Input tensor with shape of (batch_size, num_features, num_samples).
-            scale (torch.Tensor):
+            scale (torch.Tensor, optional):
                 Input tensor with shape of (batch_size, num_features).
-            bias (torch.Tensor):
+            bias (torch.Tensor, optional):
                 Input tensor with shape of (batch_size, num_features).
 
         Returns:
@@ -378,15 +381,18 @@ class ConditionedDepthwiseSeparableConv1d(nn.Module):
         )
 
     def forward(
-        self, input: torch.Tensor, scale: torch.Tensor, bias: torch.Tensor
+        self,
+        input: torch.Tensor,
+        scale: Optional[torch.Tensor] = None,
+        bias: Optional[torch.Tensor] = None,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         r"""
         Args:
             input (torch.Tensor):
                 Input tensor with shape of (batch_size, in_channels, num_samples).
-            scale (torch.Tensor):
+            scale (torch.Tensor, optional):
                 Conditioning tensor with shape of (batch_size, in_channels).
-            bias (torch.Tensor):
+            bias (torch.Tensor, optional):
                 Conditioning tensor with shape of (batch_size, in_channels).
 
         Returns:
